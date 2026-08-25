@@ -30,8 +30,8 @@ Bonus 聚焦於：
 | 類型 | 常見出現位置 | 主要特徵 | MVP 是否實作 |
 | --- | --- | --- | --- |
 | Search Grid Card | 搜尋結果、分類商品列表 | 直式高資訊密度；包含商品圖、促銷文案、名稱、價格、評論數、總銷量與 badges | 是，作為 MVP 唯一 variant |
-| Recommendation Card | 首頁、商品頁推薦區 | 尺寸較小，資訊層級較精簡，著重圖片、名稱與價格 | 否，列為後續 registry 擴充項目 |
-| History Compact Card | 商品詳情頁的瀏覽紀錄區 | 極小尺寸、以圖片識別為主，文字與互動資訊較少 | 否，列為後續 registry 擴充項目 |
+| Recommendation Card | 首頁、商品頁推薦區 | 大圖置中、資訊層級較精簡，著重名稱、價格與單一促銷 badge | 否，已有參考圖，列為後續 registry 擴充項目 |
+| History Compact Card | 商品詳情頁的瀏覽紀錄區 | 極小尺寸、以圖片識別為主，文字與互動資訊較少 | 否，已有參考圖，列為後續 registry 擴充項目 |
 
 MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取其中一張進行單卡預覽與編輯；「三筆商品卡實例」不代表實作三種 card variant。雖然只實作一種 variant，仍透過 registry 與 discriminated union 保留其他卡片類型的擴充邊界。
 
@@ -56,7 +56,30 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
   </tbody>
 </table>
 
-### 2.3 Search Grid Card 共同特徵
+### 2.3 其他卡片類型參考圖片
+
+<table>
+  <thead>
+    <tr>
+      <th>Recommendation Card（熱門推薦）</th>
+      <th>History Compact Card（瀏覽紀錄）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><img src="../assets/merchant-card-showroom/recommendation-card.png" alt="momo 熱門推薦商品卡，包含大型商品圖、輪播指示、置中商品名稱、折價券 badge 與價格" width="300"></td>
+      <td><img src="../assets/merchant-card-showroom/history-compact-card.png" alt="momo 瀏覽紀錄極簡商品卡，以圓角商品縮圖作為主要識別資訊" width="234"></td>
+    </tr>
+  </tbody>
+</table>
+
+觀察差異：
+
+- Recommendation Card 以單一商品的大圖、輪播指示、置中名稱與價格形成主要閱讀順序，促銷資訊只保留一個 badge，資訊密度低於搜尋列表卡。
+- History Compact Card 幾乎只保留圓角商品縮圖，並由外層「瀏覽紀錄」容器與導覽控制提供情境；卡片本身不承載完整名稱、價格與 badges。
+- 兩者與 `Search Grid Card` 的資訊層級和版面責任明顯不同，適合在未來各自註冊為獨立 variant，而不是用大量條件判斷塞進同一個 renderer。
+
+### 2.4 Search Grid Card 共同特徵
 
 參考 [momo 官方搜尋結果](https://www.momoshop.com.tw/search/%E6%91%A9)，搜尋列表商品卡常見的資訊層級包括：
 
