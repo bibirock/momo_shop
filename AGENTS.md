@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Next.js App Router code lives in `app/`; static assets belong in `public/`. The API contract is `openapi/openapi.json`, Swagger UI lives in `app/api-doc/`, and Hey API generates `lib/api-client/`—never edit it manually. Playwright tests live in `tests/e2e/`. Spex rules and Local File Tracker adapters are under `.codex/`; specifications belong in `specs/`.
+Next.js App Router code lives in `app/`; static assets belong in `public/`. The API contract is `openapi/openapi.json`, Swagger UI lives in `app/api-doc/`, and Hey API generates `lib/api-client/`—never edit it manually. Playwright tests live in `tests/e2e/`. Spex rules and Local File Tracker adapters are under `.codex/`; active specifications belong in `specs/YYYYMMDD/<feature>/`, and archived work is under `specs/_archive/`.
 
 ## Build, Test, and Development Commands
 

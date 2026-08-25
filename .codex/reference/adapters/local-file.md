@@ -44,19 +44,22 @@ specs/
 
 | 方向 | 規則 |
 | --- | --- |
-| ID → 路徑 | 以 `^(\d{8})-(.+)$` 拆解：group 1 為日期層、group 2 為任務層 → `specs/<日期>/<slug>/` |
-| 路徑 → ID | 日期層目錄名 + `-` + 任務層目錄名 |
+| ID → 路徑 | 以 `^(\d{8})-(.+)$` 拆解：group 1 為日期層、group 2 為任務層 → 先查 `specs/<日期>/<slug>/`；不存在則 fallback 查 `specs/_archive/<日期>/<slug>/`（封存區，見「擴充操作 › `LOCALFILE.archiveDoneSpecs()`」）；兩者皆不存在才視為卡片不存在 |
+| 路徑 → ID | 日期層目錄名 + `-` + 任務層目錄名（`_archive/` 只是路徑上多出的根目錄層，不算日期層，組 ID 時忽略） |
 
-- **不需 glob**：任何操作拿到 ID 都能直接組出路徑再讀檔。
+- **不需 glob**：任何操作拿到 ID 都能直接組出路徑再讀檔（含上述兩步 fallback）。
 - **唯一性由結構保證**：同名 slug 落在不同日期不會撞名，不必額外靠人工規矩維護唯一性。
 - **slug 格式**：小寫英數字與連字號，不含空格與底線；不可以 8 位數字開頭（否則拆解會誤判日期層）。
 - ID 一律**由檔案系統回讀**（建立目錄後回讀實際目錄名），不可由模型推算——見 `sdd-workflow.md`「ID 事實鐵則」。
+- **封存 fallback 適用範圍**：本表的 ID → 路徑 fallback 是唯一事實來源。`readItem` / `findSpecComment` / `addComment` / `getParentMetadata` / `getParentImages` / `createChildTask` / `updateTaskState`（含其內部 `tasks/`、`tasks-state.json`、`attachments/` 等子路徑組裝）一律套用同一條規則解析任務資料夾根，不在各自章節重複宣告 fallback 邏輯——只需在「解析任務資料夾根」這一個共用步驟套用兩段式查找即可。`ensureBranch` 不受影響——分支名只吃 ID 字串，從不組路徑。
 
 ### ⛔ 日期層永不搬移
 
 日期是**建卡日**，資料夾建立後**不隨工作日變動**。同一張卡跨多天推進仍留在原資料夾。
 
 理由：ID 由路徑推導，搬資料夾等於換 ID——已建立的分支名（`feature/LOCAL-<id>-…`）、已寫入的留言引用、commit 訊息內的 ID 會全部失聯。要按「當前工作日」瀏覽請用 `git log` 或編輯器搜尋，不要動目錄。
+
+（封存操作搬的是「根目錄層」`specs/` → `specs/_archive/`，不是搬日期層或任務層——`<日期>` 與 `<slug>` 這兩個組成 ID 的字串本身不變，ID 字串因此不變，不牴觸本節規則。見「擴充操作 › `LOCALFILE.archiveDoneSpecs()`」。）
 
 ---
 
@@ -420,6 +423,133 @@ Local File 模式**無 PR 概念**，依協定仍實作但一律回：
 
 ---
 
+## 擴充操作
+
+local-file adapter 特有、`TRACKER.*` 12 核心操作未涵蓋的能力，依 `adapters/README.md`「擴充操作」規範以系統前綴命名空間宣告。skills 不會自動呼叫；只有明確引用本章節的 skill／人工操作才會使用。
+
+### `LOCALFILE.archiveDoneSpecs()`（封存 done 卡片）
+
+**用途**：把 `item.md` Front Matter `state: done` 的任務資料夾，從 `specs/<日期>/<slug>/` 搬到 `specs/_archive/<日期>/<slug>/`——只搬「根目錄層」（`specs/` → `specs/_archive/`），`<日期>` 與 `<slug>` 兩段路徑原樣照搬，因此組出的 ID 字串 `<日期>-<slug>` 不變（見「ID 規則 › 封存 fallback」）。目的是讓 `specs/<日期>/` 主列表只留未完成任務，同時保留已完成卡片的完整歷史與可定位性。
+
+**呼叫時機**：一次性初始遷移（把既有 `state: done` 的卡片全部歸檔）＋日後任何時候皆可安全重跑（冪等）。不是即時 hook——目前沒有任何 skill 會在流程中自動把父卡 `state` 改成 `done`，因此本操作只能是「事後、可重跑的批次掃描」，由人工或未來排程主動呼叫；新增自動關卡觸發不在本次設計範圍內。
+
+**實作**：[`scripts/archive-done-specs.sh`](./scripts/archive-done-specs.sh)。
+
+```bash
+bash .codex/reference/adapters/scripts/archive-done-specs.sh --dry-run   # 先看清單，不搬
+bash .codex/reference/adapters/scripts/archive-done-specs.sh             # 正式搬（git mv，staged 但不 commit）
+```
+
+**目錄結構變化**：
+
+```diff
+ specs/
+   20260814/
+-    relax-query-retrieval/
+-      item.md
+-      spec.md
+   20260815/
+     feat-login/
+       ...
++  _archive/
++    20260814/
++      relax-query-retrieval/
++        item.md
++        spec.md
+```
+
+**演算法**：
+
+1. 掃描 `specs/*/`，排除 `_archive/` 本身；只認資料夾名符合 `^\d{8}$` 的日期層（其餘一律略過，不報錯——避免誤動使用者自建的雜項目錄）
+2. 每個 `specs/<日期>/<slug>/item.md`：讀 Front Matter `state:` 值（沿用 grep+offset 慣例，非真 YAML parser）
+3. 依判定分流（見下方狀態表）
+4. 命中「可封存」→ `mkdir -p specs/_archive/<日期>/` 後 `git mv specs/<日期>/<slug> specs/_archive/<日期>/<slug>`（用 `git mv` 而非 `mv` + `git add`/`git rm`，保留 blame / `git log --follow` 歷史）
+5. 每筆印一行報告；退出碼一律 0（報告型工具，非硬 gate）
+
+**狀態表**：
+
+| 判定 | 條件 | 行為 |
+| --- | --- | --- |
+| `ARCHIVED` | `state: done` 且目的地不存在且無未提交變更 | 執行 `git mv`（staged，不自動 commit） |
+| `SKIP not-done` | `state` 非 `done`（含空值） | 略過 |
+| `SKIP already-archived` | `specs/_archive/<日期>/<slug>/` 已存在 | 略過（冪等的來源） |
+| `SKIP dirty-worktree` | 該任務資料夾內 `git status --porcelain` 非空 | 略過，不強搬 |
+| `SKIP no-item-md` | 找不到 `item.md` | 略過（非標準任務資料夾） |
+
+**未提交變更（dirty-worktree）處理**：搬移前一律先跑 `git status --porcelain -- specs/<日期>/<slug>`；只要該資料夾內有任何未追蹤或未提交的變更，一律跳過、不強制搬移——直接搬移會讓「這批變更是搬移前還是搬移後產生」變得不可考，也可能讓使用者弄丟尚未 commit 內容的位置。要封存該卡，請先自行 commit 或 stash 該資料夾內的變更後重跑。
+
+**不自動 commit**：`git mv` 執行後停在「staged 未 commit」——這是本操作的複核關卡（bash 腳本沒有 `addComment` 那種互動式「確認」機制，改以「先 stage、不 commit」讓呼叫者用 `git status` / `git diff --cached --summary` 複核搬移清單後再自行 commit，效果等同協定的寫入前確認）。
+
+**與在途分支 / PR 的風險**：若某卡已有一條開著的 feature 分支（甚至已開 PR）指向 `specs/<日期>/<slug>/` 內的檔案，而封存操作在另一條分支（如 `dev`）上把該資料夾搬到 `specs/_archive/<日期>/<slug>/` 並先行 commit/merge，之後該 feature 分支合併回來時 git 需要對同一批檔案解析「一邊刪除、一邊修改」的 rename/modify 衝突——`git status --porcelain` 只能看見**目前檢出分支**的未提交變更，看不到其他分支或 worktree 上尚未合併的提交。建議：只在卡片確定沒有在途分支/PR 時封存（卡片走到 `done` 通常代表 PR 已合併，風險視窗本就很窄）；若日後真的出現「done 之前就有殘留分支」的情況，封存前先手動確認 `git branch --contains <該資料夾內任一檔案的最新 commit>`。
+
+### `LOCALFILE.archiveItem(id)`（單卡變體，選用）
+
+同一支腳本、`--id` 旗標：
+
+```bash
+bash .codex/reference/adapters/scripts/archive-done-specs.sh --id=20260825-example-feature
+```
+
+只處理指定 ID 對應的單一任務資料夾；仍套用上表全部判定（非 `done` 一律 skip，**不會**因為指定了 `--id` 就強制封存未完成的卡）。用途：agent／人工已知某張卡剛轉 `done`，想立即封存這一張而不觸發全庫掃描報告。**非必要操作**——目前沒有任何 skill 會呼叫它，`archiveDoneSpecs()` 全掃描已能滿足「一次性遷移＋日後重跑」的完整需求；保留只因實作成本極低（共用同一支腳本）。
+
+#### 注意事項
+
+- 只信任 `item.md` 自己的 `state` 欄位，不檢查子任務（`tasks/*.md`）是否全部 `done`——與 `readItem` 的既有行為一致，父卡 `state` 是唯一事實來源。
+- 腳本可在 repo 內任何目錄執行，會自動 `cd` 到 `git rev-parse --show-toplevel`；不在 git 工作樹內或找不到 `specs/` 一律印錯誤並以非 0 結束（唯二的非 0 退出情境，其餘一律 0）。
+- 不引入 YAML parser——沿用本文件其餘章節的 grep+offset 讀法。
+
+### `LOCALFILE.rebuildIndex()`（重建跨資料夾規格索引）
+
+**用途**：掃描全部 `specs/<日期>/<slug>/item.md` 與 `specs/_archive/<日期>/<slug>/item.md`，彙總成單一份跨資料夾的規格索引 `specs/INDEX.md`，供人閱讀當作 **product roadmap 總覽**（哪些規格待執行、各自進行到哪個階段、估點多少、隸屬哪張 Epic）。解決的痛點：卡片各自散在獨立資料夾，沒有總覽就只能逐夾翻 `item.md`。
+
+**衍生視圖，非事實來源**：`specs/INDEX.md` 每次執行**全量重掃、全量覆寫**（不是 append-only 事件記錄，與各階段留言檔的性質不同）。事實來源永遠是各卡自己的 `item.md` 與階段留言檔——索引隨時可整份重算、刪掉也不損失任何資訊。**其他 skill 一律不得把 `INDEX.md` 當資料來源讀取**，該用 `readItem` / `findSpecComment` 就用它們；索引只給人看。
+
+**呼叫時機**：**非自動 hook**——比照 `archiveDoneSpecs()` 的定位，由人工或明確引用本章節的 skill（目前為 `spex-roadmap`）主動觸發，任何時候皆可安全重跑。日後若要把重建接進各 skill 的交付步驟（`spex-write-spec` Phase 6、`spex-plan` Phase 8、`spex-pull-request` Phase 3、`spex-schedule` Phase 4.A 對帳後等），屬未來擴充，**不在本次設計範圍內**；真的要接時須依 `sdd-workflow.md` 既有慣例，先在規則檔宣告一行「Spec Index 更新時機（唯一來源）」，再由各 skill 各自於自己的階段呼叫。
+
+**實作**：[`scripts/rebuild-spec-index.sh`](./scripts/rebuild-spec-index.sh)。
+
+```bash
+bash .codex/reference/adapters/scripts/rebuild-spec-index.sh --dry-run   # 只印到 stdout，不寫檔
+bash .codex/reference/adapters/scripts/rebuild-spec-index.sh             # 正式重建 specs/INDEX.md
+```
+
+**演算法**：
+
+1. 掃描 `specs/*/` 與 `specs/_archive/*/`，只認資料夾名符合 `^\d{8}$` 的日期層（其餘略過不報錯，沿用 `archiveDoneSpecs()` 同款容錯）
+2. 每個任務資料夾讀 `item.md` Front Matter 的 `id` / `type` / `title` / `state`（grep+sed，不引入 YAML parser），並於內文 grep `父 Epic：\`<id>\`` 取父層 ID
+3. 依下方**階段判定表**反推該卡目前階段
+4. 估點：`spec.md` 內 grep `^- 點數[:：]`（子 Story）；抓不到再讀 `## rollup 估點` 段落首個數字並標記 `(rollup)`（Epic）；皆無 → `—`（報告型工具，不因解析失敗中斷）
+5. 最後更新：取該資料夾所有 `*.md` 中最新一筆 `<!-- spex:entry … at=… -->` 時間戳；無留言檔則退回 `item.md` 的檔案 mtime
+6. 排序：以「父 Epic → 自身 ID」為鍵，讓子卡緊跟其父 Epic 之後（父卡排 0、子卡排 1），子卡標題加 `└─` 前綴呈現層級
+7. 輸出兩張表——**進行中／待辦**與**已完成**（`已封存` / `已完成` 兩階段歸入後者）；檔頭附重建時間、卡片總數與各階段張數
+8. 終端機印出摘要；退出碼固定 0（報告型工具，非硬 gate）
+
+**階段判定表**（優先序由高到低；階段不讀任何單一欄位，而是由「資料夾內存在哪些階段檔案」反推）：
+
+| 優先序 | 判定條件 | 階段 |
+| --- | --- | --- |
+| 1 | 位於 `specs/_archive/` 下 | `已封存` |
+| 2 | `item.md` Front Matter `state: done` | `已完成` |
+| 3 | 有 `pull-request.md` | `PR 已開` |
+| 4 | 有 `verify.md` | `驗收通過` / `驗收未過` / `驗收中`（取最新一筆 entry 的 `判定：`） |
+| 5 | 有 `implement.md` | `已實作，待驗收` |
+| 6 | 有 `task.md` | `任務已拆分` |
+| 7 | 有 `plan.md` | `技術計畫已完成` |
+| 8 | 有 `spec.md` | `規格已就緒` |
+| 9 | 只有 `item.md` | `僅建卡` |
+
+**為何用檔案存在性反推而非讀欄位**：目前**沒有任何 skill 會在流程中自動更新 `item.md` 的 `state`**（同一條限制也寫在 `archiveDoneSpecs()` 的「呼叫時機」），因此 `state` 無法反映流程進度——但各階段留言檔會由對應 skill 確實寫入，是可信的進度訊號。這也是本操作唯一可行的無人工簿記做法。
+
+#### 注意事項
+
+- **`state: done` 仍需人工設定**：索引的「已完成」判定依賴 `state: done` 或已封存路徑，而前者目前無自動化來源（見上）。索引忠實呈現此現況，不代為推測。
+- **看不到「已合併」**：合併一律由人類於平台 UI 執行（見 `sdd-workflow.md`「PR 合併控管」），Spex 無從觀測，故自動化能看到的最後訊號是「PR 已開」而非「已合併」。
+- `specs/INDEX.md` 由腳本全量覆寫，**請勿手動編輯**（檔頭已註明）；它不需納入任何 append-only 或章戳保護規範，因為它不是事件記錄。
+- 不引入 YAML parser——沿用本文件其餘章節的 grep+sed 讀法。
+- 與 `archiveDoneSpecs()` 不同，本操作不呼叫 `git mv`、不改動任何既有檔案，因此**不要求在 git 工作樹內**執行（不在 git 內時以目前目錄為根）。
+
+---
+
 ## Local File 特有注意事項
 
 1. **日期層永不搬移** — 見上方「ID 規則」。搬資料夾等於換 ID，會讓分支名、留言引用、commit 內的 ID 全部失聯。
@@ -429,3 +559,5 @@ Local File 模式**無 PR 概念**，依協定仍實作但一律回：
 5. **無網路環境** — Local File Adapter 完全不需要網路。適合離線開發或 ADO 連線不穩的情況。
 6. **版本控制** — `specs/` 目錄建議納入 `git` 版本控制，方便團隊分享 Spex 產出。
 7. **迭代路徑的替代** — 無 ADO 時 `iterationPath` 無意義，可填入 Sprint 名稱或留空。
+8. **封存（`specs/_archive/`）** — `state: done` 的卡片可用 `LOCALFILE.archiveDoneSpecs()`（[`scripts/archive-done-specs.sh`](./scripts/archive-done-specs.sh)）搬到 `specs/_archive/<日期>/<slug>/`。只搬根目錄層，日期層與任務層字串不變，ID 因此不變——不牴觸「日期層永不搬移」。搬移用 `git mv` 保留歷史，且只在 `git status --porcelain` 乾淨時才搬；掃描時 `_archive/` 本身會被排除，不會被誤判成新的日期層。詳見「ID 規則 › 封存 fallback」與「擴充操作 › `LOCALFILE.archiveDoneSpecs()`」。
+9. **規格索引（`specs/INDEX.md`）** — 由 `LOCALFILE.rebuildIndex()`（[`scripts/rebuild-spec-index.sh`](./scripts/rebuild-spec-index.sh)）全量重建的跨資料夾 roadmap 總覽，**是衍生視圖不是事實來源**：可隨時重算、刪掉不損失資訊，任何 skill 都不得拿它當讀取來源（該用 `readItem` / `findSpecComment`）。它是 `specs/` 下唯一**不**適用「留言 append-only」規範的檔案（第 2 點），因為它不是事件記錄。詳見「擴充操作 › `LOCALFILE.rebuildIndex()`」。
