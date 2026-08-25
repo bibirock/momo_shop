@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "T-001": { "state": "todo" },
+    "T-002": { "state": "todo" },
+    "T-003": { "state": "todo" },
+    "T-004": { "state": "todo" },
+    "T-005": { "state": "todo" }
+  },
+  "dependencies": [
+    { "predecessor": "T-001", "successor": "T-002" },
+    { "predecessor": "T-002", "successor": "T-003" },
+    { "predecessor": "T-001", "successor": "T-004" },
+    { "predecessor": "T-003", "successor": "T-004" },
+    { "predecessor": "T-003", "successor": "T-005" },
+    { "predecessor": "T-004", "successor": "T-005" }
+  ]
+}
