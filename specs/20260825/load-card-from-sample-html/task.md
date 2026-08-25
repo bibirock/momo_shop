@@ -8,11 +8,11 @@
 
 | Task ID | 名稱 | 等級 | 依賴 | 狀態 |
 |---|---|---|---|---|
-| T-001 | 建立 persisted 商品卡設定契約 | Foundation Type | — | ⬜ |
-| T-002 | Embed route 顯示 demo-food 與錯誤卡 | Vertical Slice | T-001 | ⬜ |
-| T-003 | Sample loader mount/destroy 嵌入流程 | Vertical Slice | T-002 | ⬜ |
-| T-004 | Showroom 儲存設定並由 Sample 還原 | Vertical Slice | T-001, T-003 | ⬜ |
-| T-005 | Sample 嵌入流程窄螢幕與可及性驗收 | Vertical Slice | T-003, T-004 | ⬜ |
+| T-001 | 建立 persisted 商品卡設定契約 | Foundation Type | — | ✅ |
+| T-002 | Embed route 顯示 demo-food 與錯誤卡 | Vertical Slice | T-001 | ✅ |
+| T-003 | Sample loader mount/destroy 嵌入流程 | Vertical Slice | T-002 | ✅ |
+| T-004 | Showroom 儲存設定並由 Sample 還原 | Vertical Slice | T-001, T-003 | ✅ |
+| T-005 | Sample 嵌入流程窄螢幕與可及性驗收 | Vertical Slice | T-003, T-004 | ✅ |
 
 ## 任務內容
 

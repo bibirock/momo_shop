@@ -5,10 +5,10 @@
 
 | Task | 子卡檔案 | 狀態 |
 |---|---|---|
-| T-001 | `tasks/T-001.md` | todo |
-| T-002 | `tasks/T-002.md` | todo |
-| T-003 | `tasks/T-003.md` | todo |
-| T-004 | `tasks/T-004.md` | todo |
-| T-005 | `tasks/T-005.md` | todo |
+| T-001 | `tasks/T-001.md` | done |
+| T-002 | `tasks/T-002.md` | done |
+| T-003 | `tasks/T-003.md` | done |
+| T-004 | `tasks/T-004.md` | done |
+| T-005 | `tasks/T-005.md` | done |
 
 依賴連結已寫入 `tasks-state.json`，共 6 條，無失敗邊。

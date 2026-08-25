@@ -1,10 +1,10 @@
 {
   "tasks": {
-    "T-001": { "state": "todo" },
-    "T-002": { "state": "todo" },
-    "T-003": { "state": "todo" },
-    "T-004": { "state": "todo" },
-    "T-005": { "state": "todo" }
+    "T-001": { "state": "done" },
+    "T-002": { "state": "done" },
+    "T-003": { "state": "done" },
+    "T-004": { "state": "done" },
+    "T-005": { "state": "done" }
   },
   "dependencies": [
     { "predecessor": "T-001", "successor": "T-002" },

@@ -16,14 +16,20 @@ type ProductCardStore = {
 
 export const PRODUCT_CARD_STORAGE_KEY = "momo-card-showroom:v1";
 
+let markHydrated: (() => void) | undefined;
+
 export const useProductCardStore = create<ProductCardStore>()(
   persist(
-    (set) => ({
-      savedConfig: null,
-      hasHydrated: false,
-      saveConfig: (config) => set({ savedConfig: normalizeProductCardConfig(config) }),
-      clearConfig: () => set({ savedConfig: null }),
-    }),
+    (set) => {
+      markHydrated = () => set({ hasHydrated: true });
+
+      return {
+        savedConfig: null,
+        hasHydrated: false,
+        saveConfig: (config: ProductCardConfig) => set({ savedConfig: normalizeProductCardConfig(config) }),
+        clearConfig: () => set({ savedConfig: null }),
+      };
+    },
     {
       name: PRODUCT_CARD_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
@@ -32,9 +38,7 @@ export const useProductCardStore = create<ProductCardStore>()(
         ...current,
         savedConfig: normalizeProductCardConfig((persisted as Partial<ProductCardStore> | undefined)?.savedConfig ?? DEFAULT_PRODUCT_CARD),
       }),
-      onRehydrateStorage: () => (state) => {
-        if (!state?.hasHydrated) useProductCardStore.setState({ hasHydrated: true });
-      },
+      onRehydrateStorage: () => () => markHydrated?.(),
     },
   ),
 );
