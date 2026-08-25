@@ -19,6 +19,10 @@ body {
   font-family: Arial, "Noto Sans TC", sans-serif;
 }
 
+.embed-shell { display: grid; min-width: 0; min-height: 100vh; place-items: start center; padding: 16px; background: #f6f3f4; }
+.embed-card-frame { width: min(100%, 360px); min-width: 0; }
+.embed-error { width: min(100%, 360px); border: 1px solid #e3b6c8; border-radius: 12px; padding: 20px; background: #fff4f7; color: #8b1747; font-weight: 700; text-align: center; }
+
 button, input, select, textarea { font: inherit; }
 
 .showroom-shell {
@@ -33,6 +37,7 @@ button, input, select, textarea { font: inherit; }
 .showroom-hero > p:last-child { max-width: 620px; margin-top: 20px; color: #74666d; line-height: 1.7; }
 
 .showroom-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 20px; align-items: start; }
+.showroom-loading { border: 1px solid #e5dcdf; border-radius: 24px; padding: 48px 24px; background: #fff; color: #6c5e65; text-align: center; }
 .showroom-panel { min-width: 0; border: 1px solid #e5dcdf; border-radius: 24px; background: #fff; }
 .showroom-preview { display: grid; justify-items: center; padding: 24px; background: #eee8ea; }
 .showroom-editor { padding: 24px; }
@@ -63,6 +68,10 @@ button, input, select, textarea { font: inherit; }
 .editor-section > label, .editor-columns label { display: grid; min-width: 0; gap: 7px; color: #6c5e65; font-size: .82rem; font-weight: 700; }
 .editor-form input, .editor-form select, .editor-form textarea { width: 100%; min-width: 0; border: 1px solid #dcd2d6; border-radius: 10px; padding: 10px 12px; outline: 0; background: #fbf9fa; color: #2c2327; }
 .editor-form input:focus, .editor-form select:focus, .editor-form textarea:focus { border-color: #d71f69; box-shadow: 0 0 0 3px rgb(215 31 105 / 12%); }
+.showroom-save-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.showroom-save-row button { border: 0; border-radius: 999px; padding: 11px 16px; background: #d71f69; color: #fff; cursor: pointer; font-weight: 750; }
+.showroom-save-row button:focus-visible { outline: 3px solid rgb(215 31 105 / 35%); outline-offset: 3px; }
+.showroom-save-row span { color: #26724b; font-size: .86rem; font-weight: 700; }
 .editor-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .badge-fieldset { display: flex; flex-wrap: wrap; gap: 8px; border: 0; }
 .badge-fieldset > legend { width: 100%; }

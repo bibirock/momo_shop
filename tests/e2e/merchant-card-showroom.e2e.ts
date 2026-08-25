@@ -157,3 +157,19 @@ test("AC-05: 390px 可操作且無水平溢出", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(browserErrors).toEqual([]);
 });
+
+test("P0 Story 2: Save 後重新整理復原設定，未 Save 的 Draft 不保存", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.removeItem("momo-card-showroom:v1"));
+  await page.goto("/");
+
+  await page.getByRole("textbox", { name: "商品名稱" }).fill("已保存的商品");
+  await page.getByRole("button", { name: "儲存商品卡" }).click();
+  await expect(page.getByRole("status")).toHaveText("已儲存商品卡設定");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "已保存的商品" })).toBeVisible();
+
+  await page.getByRole("textbox", { name: "商品名稱" }).fill("尚未保存的 Draft");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "已保存的商品" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚未保存的 Draft" })).toHaveCount(0);
+});

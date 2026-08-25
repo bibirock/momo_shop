@@ -29,16 +29,20 @@ export const DEFAULT_PRODUCT_CARD: ProductCardConfig = {
   appearance: { accentColor: "#D71F69", borderRadius: 12 },
 };
 
-export const DEFAULT_EDITOR_VALUES: ProductCardEditorValues = {
-  imageId: DEFAULT_PRODUCT_CARD.content.imageId,
-  imageAlt: DEFAULT_PRODUCT_CARD.content.imageAlt,
-  promotion: DEFAULT_PRODUCT_CARD.content.promotion,
-  title: DEFAULT_PRODUCT_CARD.content.title,
-  salesText: DEFAULT_PRODUCT_CARD.content.salesText,
-  price: String(DEFAULT_PRODUCT_CARD.content.price),
-  originalPrice: String(DEFAULT_PRODUCT_CARD.content.originalPrice),
-  reviewCount: String(DEFAULT_PRODUCT_CARD.content.reviewCount),
-  badges: DEFAULT_PRODUCT_CARD.content.badges,
-  accentColor: DEFAULT_PRODUCT_CARD.appearance.accentColor,
-  borderRadius: String(DEFAULT_PRODUCT_CARD.appearance.borderRadius),
-};
+export function editorValuesFromConfig(config: ProductCardConfig): ProductCardEditorValues {
+  return {
+    imageId: config.content.imageId,
+    imageAlt: config.content.imageAlt,
+    promotion: config.content.promotion,
+    title: config.content.title,
+    salesText: config.content.salesText,
+    price: String(config.content.price),
+    originalPrice: config.content.originalPrice === undefined ? "" : String(config.content.originalPrice),
+    reviewCount: String(config.content.reviewCount),
+    badges: [...config.content.badges],
+    accentColor: config.appearance.accentColor,
+    borderRadius: String(config.appearance.borderRadius),
+  };
+}
+
+export const DEFAULT_EDITOR_VALUES = editorValuesFromConfig(DEFAULT_PRODUCT_CARD);
