@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "T-001": { "state": "todo" },
+    "T-001": { "state": "done" },
     "T-002": { "state": "todo" },
     "T-003": { "state": "todo" },
     "T-004": { "state": "todo" }
