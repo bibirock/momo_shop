@@ -37,7 +37,7 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 
 ### 2.2 Search Grid Card 參考圖片
 
-以下截圖來自真實 momo 搜尋／商品列表情境，作為 MVP 的視覺與資料欄位參考；實作不呼叫真實 momo API，也不直接使用線上商品圖片。
+以下截圖來自真實 momo 搜尋／商品列表情境，作為 MVP 的視覺與資料欄位參考；實作不呼叫真實 momo API，也不直接使用真實線上商品圖片。Mock 商品圖允許由假圖網站產生，實際交付可使用遠端假圖 URL 或將生成結果保存為 repo 內靜態資產。
 
 <table>
   <thead>
@@ -135,6 +135,12 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 - Save、Discard、Reset 的語意清楚，適合展示狀態一致性。
 - 可明確測試「未儲存」、「已儲存」與「重新整理」三種狀態。
 
+實作約束：
+
+- Browser-side Persistence 統一由 Zustand `persist` middleware 管理。
+- 編輯器與業務程式只呼叫 store action，不直接呼叫 `localStorage.getItem()`、`localStorage.setItem()` 或 `localStorage.removeItem()`。
+- Storage key、schema version、rehydration 與 persisted state 合併規則集中在 Zustand persistence 設定。
+
 ### 3.3 外部嵌入方式
 
 討論選項：
@@ -144,17 +150,17 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 3. 純 iframe。
 4. 同一底層 renderer 提供 declarative 與 imperative API。
 
-決策：**提供兩種 API，但共用同一個 iframe renderer**。
+決策：**P0 先提供 imperative script API；基本門檻完成後才考慮 declarative Web Component。若兩種 API 都實作，必須共用同一個 iframe renderer。**
 
-- Declarative：`<momo-product-card>`。
-- Imperative：`MomoCard.mount()`。
-- 兩者共用 `createIframe()`，不維護兩份卡片 UI。
+- P0 必做：`MomoCard.mount()`。
+- 可選擴充：`<momo-product-card>`。
+- 若提供兩者，必須共用 `createIframe()`，不維護兩份卡片 UI。
 
 理由：
 
 - Showroom 與外部頁面共用同一個 React `ProductCard`。
 - iframe 隔離宿主頁面的 CSS，降低整合風險。
-- 同時展示兩種 consumer integration style，但不增加 renderer 一致性問題。
+- 先用一種 consumer integration style 完成基本需求，再視剩餘時間補充 declarative API。
 - 不需要在有限時間內增加 library bundler 或發佈 npm package。
 
 已知代價：
@@ -171,6 +177,50 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 - 商品卡使用 momo 粉紅色調與較高資訊密度。
 - 不將整個 Showroom 仿造成電商網站，避免混淆工具與商品體驗的責任。
 
+### 3.5 需求優先度與 Spec 開卡順序
+
+排序原則：**先完成可獨立展示的基本需求閉環，再增加 Showroom 完整度與 Bonus 證據。** 每一階段都必須能獨立 demo，不以單純的前端層、狀態層或架構層作為水平切分。
+
+#### 優先度判定
+
+| 優先度 | 需求 | 判定理由 |
+| --- | --- | --- |
+| P0-1 | 展示並調整單一 `Search Grid Card` | 先交付一張可見、可操作的商品卡，滿足「至少一個卡片」的最低門檻 |
+| P0-2 | Browser-side Persistence | 完成「調整 → 儲存 → 重新整理後仍保留」的基本閉環 |
+| P0-3 | Sample HTML 載入商品卡 | 補齊外部 consumer 的基本需求；先完成一種 script API 即達基本驗收門檻 |
+| P1-1 | 三筆商品清單、選取與個別保存 | 將最低交付擴充為完整 Showroom，但不阻擋 P0 基本閉環 |
+| P1-2 | State Consistency Strategy | 強化 draft、persisted state、dirty guard、錯誤復原與跨頁同步的可預期行為 |
+| P2-1 | Schema / Plugin Extensibility | 單一 variant 已可完成基本交付；擴充能力最後以可驗證的註冊邊界補強 |
+
+`Reusable Card Architecture` 不獨立拆成後置卡片，而是從 P0 起套用到所有 Story 的共同驗收約束：
+
+- Showroom 與 Sample HTML 共用同一個商品卡 renderer。
+- 商品卡只接受可序列化設定，不直接讀取編輯器、儲存空間或路由狀態。
+- 不維護兩份外觀相同但實作分離的商品卡 UI。
+- 擴充能力不得犧牲 P0 基本閉環的交付順序。
+
+#### Spec 拆分與依賴
+
+```text
+Epic：Merchant Card Showroom
+├─ P0 Story 1：展示並調整單一商品卡（8 點）
+├─ P0 Story 2：保存與復原商品卡設定（8 點）[依賴 Story 1]
+├─ P0 Story 3：從 Sample HTML 載入商品卡（8 點）[依賴 Story 1、2]
+├─ P1 Story 4：瀏覽並選取多筆商品卡（5 點）[依賴 Story 1、2]
+├─ P1 Story 5：維持編輯、儲存與跨頁狀態一致（8 點）[依賴 Story 2、3、4]
+└─ P2 Story 6：驗證商品卡 Schema 與 Variant 擴充能力（5 點）
+```
+
+Story 1–3 完成後即達基本需求交付門檻；Story 4–6 依序增加 Showroom 完整度與 Bonus 證據。外部嵌入在 P0 先以一種 script API 完成；第二種 consumer API 可在基本門檻完成後再加入，不阻擋 Story 3 驗收。
+
+### 3.6 Mock 商品圖片來源
+
+決策：**允許使用假圖網站產生商品圖片，但不使用真實 momo API 或真實線上商品資料。**
+
+- 圖片內容只需能區分不同 mock 商品，不要求複製參考截圖中的品牌或促銷素材。
+- 實際採用遠端假圖 URL 或將生成結果保存為 repo 內靜態資產，留待技術計畫決定。
+- 若交付版本執行時依賴遠端圖片，載入失敗時仍須顯示可辨識的替代內容，且不可阻斷商品卡調整流程。
+
 ## 4. 最終 MVP 定義
 
 ### 4.1 使用者流程
@@ -180,7 +230,7 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 3. 使用者在編輯面板修改內容或外觀，預覽立即反映 draft。
 4. 使用者按 Save 後，通過驗證的設定才寫入 Zustand canonical state 與 localStorage。
 5. 重新整理頁面後，卡片仍使用已儲存設定。
-6. 使用者開啟 sample HTML，可看到 declarative 與 imperative 兩個嵌入實例。
+6. 使用者開啟 sample HTML，可看到 `MomoCard.mount()` 的使用程式碼與嵌入實例。
 7. 在另一個 Showroom 分頁儲存變更後，已開啟的 sample/embed 透過 `storage` event 即時同步。
 
 ### 4.2 Showroom 介面
@@ -203,7 +253,7 @@ MVP 會列出三筆 `Search Grid Card` 商品卡實例，並讓使用者選取�
 
 - 提供三筆同卡型、不同內容與促銷狀態的 mock 商品。
 - 三筆商品分別持久化，而不是共用單一設定。
-- 圖片使用 repo 內的 mock 靜態資產，不呼叫真實 momo API，也不依賴遠端圖片服務。
+- 圖片使用假圖網站產生的 mock 圖片或 repo 內靜態資產；不呼叫真實 momo API，也不使用真實線上商品資料。
 
 ## 5. 資料與公開介面
 
@@ -244,10 +294,11 @@ type PersistedCardStore = {
 ```
 
 - localStorage key：`momo-card-showroom:v1`。
-- localStorage 是已提交資料的唯一 browser-side persistence。
+- localStorage 是已提交資料的唯一 browser-side persistence backing store，但所有讀寫一律經由 Zustand `persist` middleware，不由應用程式直接操作。
 - draft 只存在編輯器記憶體中，不寫入 localStorage。
-- hydration 完成前顯示 loading state，避免 SSR 預設值與 client persisted state 不一致。
+- hydration 完成前顯示 loading state，並以 Zustand persistence 的 hydration 狀態或完成事件判斷，避免 SSR 預設值與 client persisted state 不一致。
 - JSON 無法解析、版本不符或資料不完整時，回退預設資料並顯示可關閉的復原提示。
+- 跨頁收到目標 storage key 的變更事件時，透過 Zustand persistence 的 rehydration 流程重新載入，不在事件處理器直接讀取或解析 localStorage。
 
 ### 5.3 編輯器規則
 
@@ -295,11 +346,11 @@ type PersistedCardStore = {
 
 ### 5.6 Embed API
 
-Declarative API：
+Declarative API（基本門檻完成後的可選擴充）：
 
 ```html
 <script src="/momo-card.js"></script>
-<momo-product-card card-id="demo-phone"></momo-product-card>
+<momo-product-card card-id="demo-food"></momo-product-card>
 ```
 
 Imperative API：
@@ -310,7 +361,7 @@ Imperative API：
 
 <script>
   const handle = MomoCard.mount("#imperative-demo", {
-    cardId: "demo-phone",
+    cardId: "demo-food",
   });
 
   // Unmount when the host no longer needs the card.
@@ -321,7 +372,7 @@ Imperative API：
 Loader 規則：
 
 - 從 loader script URL 推導服務 origin，不寫死 localhost。
-- Declarative 與 imperative API 共用 `createIframe()`。
+- 若實作 declarative API，必須與 imperative API 共用 `createIframe()`。
 - iframe URL 為 `/embed/[cardId]`。
 - iframe 使用有意義的 `title`、lazy loading 與 responsive width。
 - 未知 `cardId` 顯示明確錯誤卡，不靜默載入其他商品。
@@ -329,9 +380,9 @@ Loader 規則：
 
 Sample HTML：
 
-- `/sample.html` 左右並排顯示兩種 API 的同一筆商品。
-- 每一側同時顯示使用程式碼與實際結果。
-- 兩個實例必須呈現完全相同的 persisted config。
+- P0 的 `/sample.html` 顯示 imperative API 的使用程式碼與實際結果。
+- 實例必須呈現 `demo-food` 的 persisted config。
+- 若後續加入 declarative API，才擴充為左右並排顯示兩種 API，且兩個實例必須呈現完全相同的 persisted config。
 
 ## 6. State Consistency Strategy
 
@@ -354,7 +405,7 @@ editor draft ──► preview       open embed pages
 - Preview 讀取 draft，讓使用者儲存前即可確認變更。
 - Embed 只讀 persisted config，不顯示尚未 Save 的 draft。
 - Save 使用整筆 config replacement，避免部分欄位更新造成中間狀態。
-- 其他同來源頁面監聽 `storage` event，重新驗證 payload 後替換對應商品。
+- 其他同來源頁面監聽 `storage` event，透過 Zustand persistence rehydration 重新驗證並載入 persisted state；事件處理器不直接讀寫或解析 localStorage。
 
 ## 7. 測試與驗收條件
 
@@ -380,12 +431,12 @@ editor draft ──► preview       open embed pages
 
 ### 7.3 Embed
 
-- Web Component 可以載入指定商品。
 - `MomoCard.mount()` 可以載入指定商品。
 - `destroy()` 可以移除 iframe。
 - 未知商品 ID 顯示錯誤狀態。
-- 兩種 API 顯示相同內容。
-- 在另一分頁 Save 後，已開啟的兩個 embed 實例透過 storage event 更新。
+- Sample HTML 顯示 imperative API 的程式碼與實際結果。
+- 在另一分頁 Save 後，已開啟的 embed 實例透過 storage event 更新。
+- 若實作可選 Web Component，Web Component 可以載入指定商品，且與 imperative API 顯示相同內容。
 
 ### 7.4 Accessibility 與 Responsive
 
