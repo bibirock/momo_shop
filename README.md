@@ -15,6 +15,49 @@ npm run dev
 
 開啟 [http://localhost:3000](http://localhost:3000) 即可查看專案；API 文件位於 [http://localhost:3000/api-doc](http://localhost:3000/api-doc)。
 
+### 使用 Sample HTML
+
+啟動開發伺服器後，開啟 [http://localhost:3000/sample.html](http://localhost:3000/sample.html)，即可查看外部頁面載入商品卡的範例。Sample HTML 會載入 `/momo-card.js`，並在頁面上建立一個 `demo-food` 商品卡 iframe。
+
+在其他頁面嵌入商品卡時，加入 loader script 與目標容器，再呼叫 `MomoCard.mount()`：
+
+```html
+<div id="product-card"></div>
+<script src="http://localhost:3000/momo-card.js"></script>
+<script>
+  const handle = MomoCard.mount("#product-card", { cardId: "demo-food" });
+
+  // 需要移除商品卡時：
+  // handle.destroy();
+</script>
+```
+
+`cardId` 目前支援 `demo-food`。`mount()` 會回傳具備 `destroy()` 的 handle；呼叫後會移除該次建立的 iframe。部署到其他環境時，請將 script URL 換成該環境的 `/momo-card.js` 位址。
+
+### 驗證 Sample HTML
+
+1. 啟動開發伺服器：
+
+   ```bash
+   npm run dev
+   ```
+
+2. 開啟 [http://localhost:3000/sample.html](http://localhost:3000/sample.html)，確認頁面同時顯示 `MomoCard.mount()` 範例程式碼與 `demo-food` 商品卡。
+3. 在瀏覽器 DevTools Console 執行以下程式，確認商品卡 iframe 可建立並移除：
+
+   ```js
+   const handle = MomoCard.mount("#imperative-demo", { cardId: "demo-food" });
+   handle.destroy();
+   ```
+
+4. 執行 Sample HTML 的 E2E 驗證：
+
+   ```bash
+   npm run test:e2e -- --grep "sample page|derives script origin|destroy removes"
+   ```
+
+   測試會驗證 iframe 的來源、`loading="lazy"`、可辨識標題，以及 `destroy()` 是否能移除 iframe。
+
 ## 常用指令
 
 ```bash
