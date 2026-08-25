@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Merchant Card Showroom
 
-## Getting Started
+以 Next.js、TypeScript 與 Tailwind CSS 開發的 momo 商品卡展示工具。使用者可以預覽與調整商品卡，並將設定保存在瀏覽器中；專案也規劃提供 sample HTML，示範如何從外部頁面載入商品卡。
 
-First, run the development server:
+詳細的 MVP 設計與決策請參考 [Merchant Card Showroom MVP 討論紀錄](docs/discuss/merchant-card-showroom-mvp.md)。
+
+## 啟動專案
+
+環境需求：Node.js 20.9.0 以上與 npm。
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+開啟 [http://localhost:3000](http://localhost:3000) 即可查看專案；API 文件位於 [http://localhost:3000/api-doc](http://localhost:3000/api-doc)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 常用指令
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build         # 建立 production build
+npm start             # 啟動 production server
+npm run lint          # 執行 ESLint
+npm run generate:api  # 依 OpenAPI 規格產生 API client
+npm run test:e2e      # 執行 Playwright E2E 測試
+```
 
-## Learn More
+## Spex
 
-To learn more about Next.js, take a look at the following resources:
+本專案使用 [Spex](https://github.com/bibirock/spex) 管理規格驅動開發（SDD）流程，涵蓋規格、規劃、任務拆解、實作與驗收。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Spex 設定與 skills 位於 `.codex/`，進行中的規格存放於 `specs/`。
