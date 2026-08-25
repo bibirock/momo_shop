@@ -57,7 +57,9 @@ test("AC-02: Editor 欄位完整", async ({ page }) => {
     "Accent color",
     "圓角",
   ]) {
-    await expect(page.getByRole("textbox", { name: label })).toBeVisible();
+    await expect(
+      page.getByRole(label === "售價" || label === "原價" || label === "評論數" || label === "圓角" ? "spinbutton" : "textbox", { name: label }),
+    ).toBeVisible();
   }
 
   const badges = page.getByRole("group", { name: "Badges" });
@@ -75,13 +77,13 @@ test("AC-03: 合法設定即時更新預覽", async ({ page }) => {
   await page.getByRole("textbox", { name: "圖片替代文字" }).fill("保健食品商品圖");
   await page.getByRole("textbox", { name: "促銷文案" }).fill("會員限定");
   await page.getByRole("textbox", { name: "商品名稱" }).fill("高濃度葉黃素膠囊");
-  await page.getByRole("textbox", { name: "售價" }).fill("888");
-  await page.getByRole("textbox", { name: "原價" }).fill("1080");
+  await page.getByRole("spinbutton", { name: "售價" }).fill("888");
+  await page.getByRole("spinbutton", { name: "原價" }).fill("1080");
   await page.getByRole("textbox", { name: "總銷量" }).fill("總銷量>2,000");
-  await page.getByRole("textbox", { name: "評論數" }).fill("6789");
+  await page.getByRole("spinbutton", { name: "評論數" }).fill("6789");
   await page.getByRole("checkbox", { name: "折價券" }).check();
   await page.getByRole("textbox", { name: "Accent color" }).fill("#7A1CAC");
-  await page.getByRole("textbox", { name: "圓角" }).fill("20");
+  await page.getByRole("spinbutton", { name: "圓角" }).fill("20");
 
   await expect(card.getByRole("img", { name: "保健食品商品圖" })).toBeVisible();
   await expect(card.getByText("會員限定")).toBeVisible();
@@ -101,10 +103,10 @@ test("AC-03: 非法設定不污染預覽", async ({ page }) => {
   const card = page.getByTestId("product-card");
   const price = card.getByText("$999", { exact: true });
 
-  await page.getByRole("textbox", { name: "售價" }).fill("-1");
-  await page.getByRole("textbox", { name: "評論數" }).fill("not-a-number");
+  await page.getByRole("spinbutton", { name: "售價" }).fill("-1");
+  await page.getByRole("spinbutton", { name: "評論數" }).fill("not-a-number");
   await page.getByRole("textbox", { name: "Accent color" }).fill("pink");
-  await page.getByRole("textbox", { name: "圓角" }).fill("25");
+  await page.getByRole("spinbutton", { name: "圓角" }).fill("25");
 
   await expect(price).toBeVisible();
   await expect(card.getByText("5,208", { exact: true })).toBeVisible();
@@ -118,7 +120,7 @@ test("AC-04: 空值與長文不破版", async ({ page }) => {
   const longTitle = "這是一段非常非常長的商品名稱用來確認兩行截斷且內容永遠不會超出商品卡片寬度";
 
   await page.getByRole("textbox", { name: "促銷文案" }).fill("");
-  await page.getByRole("textbox", { name: "原價" }).fill("");
+  await page.getByRole("spinbutton", { name: "原價" }).fill("");
   await page.getByRole("checkbox", { name: "速" }).uncheck();
   await page.getByRole("checkbox", { name: "登記" }).uncheck();
   await page.getByRole("textbox", { name: "商品名稱" }).fill(longTitle);
@@ -154,4 +156,20 @@ test("AC-05: 390px 可操作且無水平溢出", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "窄螢幕測試商品" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(browserErrors).toEqual([]);
+});
+
+test("P0 Story 2: Save 後重新整理復原設定，未 Save 的 Draft 不保存", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.removeItem("momo-card-showroom:v1"));
+  await page.goto("/");
+
+  await page.getByRole("textbox", { name: "商品名稱" }).fill("已保存的商品");
+  await page.getByRole("button", { name: "儲存商品卡" }).click();
+  await expect(page.getByRole("status")).toHaveText("已儲存商品卡設定");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "已保存的商品" })).toBeVisible();
+
+  await page.getByRole("textbox", { name: "商品名稱" }).fill("尚未保存的 Draft");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "已保存的商品" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚未保存的 Draft" })).toHaveCount(0);
 });
