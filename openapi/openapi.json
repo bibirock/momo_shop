@@ -1,0 +1,15 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Momo Shop API",
+    "description": "OpenAPI contract for the Momo Shop application.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current host"
+    }
+  ],
+  "paths": {}
+}

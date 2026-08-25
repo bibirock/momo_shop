@@ -1,0 +1,3 @@
+# === spex 沙箱防護（MCP-only 中層；封網路 egress 擋直打 REST）===
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"

@@ -6,21 +6,33 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:api": "openapi-ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "next": "16.3.2",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "swagger-ui-react": "5.32.14",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.97.3",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/swagger-ui-react": "5.18.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "js-yaml": "4.3.1"
   }
 }
